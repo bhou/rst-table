@@ -9,7 +9,7 @@ import (
 // Row is a map of column name to value.
 type Row any
 type ColRender func(Row, string) string
-type lessFunc func(Row, Row) bool
+type LessFunc func(Row, Row) bool
 
 type Table struct {
 	Rows             []Row
@@ -45,17 +45,27 @@ func (t *Table) AddCol(col string, render ColRender) {
 	t.ColRenders[col] = render
 }
 
-// GenerateRstTable generates a reStructuredText table.
 func (t Table) GenerateRstTable(groupBy []string) string {
+	return t.GenerateRstTableWithCustomOrder(groupBy, nil)
+}
+
+// GenerateRstTable generates a reStructuredText table.
+func (t Table) GenerateRstTableWithCustomOrder(groupBy []string, less LessFunc) string {
 	// reorder the rows according to the groupBy
-	sort.Slice(t.Rows, func(i, j int) bool {
-		for _, groupCol := range groupBy {
-			if t.ColRenders[groupCol](t.Rows[i], groupCol) < t.ColRenders[groupCol](t.Rows[j], groupCol) {
-				return true
+	if less != nil {
+		sort.Slice(t.Rows, func(i, j int) bool {
+			return less(t.Rows[i], t.Rows[j])
+		})
+	} else {
+		sort.Slice(t.Rows, func(i, j int) bool {
+			for _, groupCol := range groupBy {
+				if t.ColRenders[groupCol](t.Rows[i], groupCol) < t.ColRenders[groupCol](t.Rows[j], groupCol) {
+					return true
+				}
 			}
-		}
-		return false
-	})
+			return false
+		})
+	}
 
 	// first set the table value to string using the col render
 	maxColLen := 0

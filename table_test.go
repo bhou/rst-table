@@ -151,3 +151,41 @@ func TestTableWithThreeColGroup(t *testing.T) {
 +------------+------------+------------+------------+
 	`))
 }
+
+func TestTableWithGroupAndSort(t *testing.T) {
+	table := NewTable()
+
+	table.AddCol("name", DefaultColRender)
+	table.AddCol("age", DefaultColRender)
+
+	table.AddRow(map[string]any{"name": "John", "age": 20})
+	table.AddRow(map[string]any{"name": "Jane", "age": 30})
+	table.AddRow(map[string]any{"name": "Joe", "age": 40})
+	table.AddRow(map[string]any{"name": "Jack", "age": 30})
+	table.AddRow(map[string]any{"name": "Jill", "age": 30})
+
+	t2 := table.GenerateRstTableWithCustomOrder([]string{"age"}, func(a, b Row) bool {
+		if a.(map[string]any)["age"].(int) < b.(map[string]any)["age"].(int) {
+			return false
+		}
+		return true
+	})
+
+	fmt.Println(t2)
+
+	assert.Equal(t, strings.TrimSpace(t2), strings.TrimSpace(`
++------+------+
+| age  | name |
++======+======+
+| 40   | Joe  |
++------+------+
+| 30   | Jill |
++      +------+
+|      | Jack |
++      +------+
+|      | Jane |
++------+------+
+| 20   | John |
++------+------+
+`))
+}
