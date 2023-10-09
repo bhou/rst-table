@@ -46,11 +46,11 @@ func (t *Table) AddCol(col string, render ColRender) {
 }
 
 func (t Table) GenerateRstTable(groupBy []string) string {
-	return t.GenerateRstTableWithCustomOrder(groupBy, nil)
+	return t.GenerateRstTableWithCustomOrder(groupBy, nil, false)
 }
 
 // GenerateRstTable generates a reStructuredText table.
-func (t Table) GenerateRstTableWithCustomOrder(groupBy []string, less LessFunc) string {
+func (t Table) GenerateRstTableWithCustomOrder(groupBy []string, less LessFunc, mergeGroupItems bool) string {
 	// reorder the rows according to the groupBy
 	if less != nil {
 		sort.Slice(t.Rows, func(i, j int) bool {
@@ -59,7 +59,7 @@ func (t Table) GenerateRstTableWithCustomOrder(groupBy []string, less LessFunc) 
 	} else {
 		sort.Slice(t.Rows, func(i, j int) bool {
 			for _, groupCol := range groupBy {
-				if t.ColRenders[groupCol](t.Rows[i], groupCol) < t.ColRenders[groupCol](t.Rows[j], groupCol) {
+				if strings.Compare(t.ColRenders[groupCol](t.Rows[i], groupCol), t.ColRenders[groupCol](t.Rows[j], groupCol)) == -1 {
 					return true
 				}
 			}
@@ -126,6 +126,7 @@ func (t Table) GenerateRstTableWithCustomOrder(groupBy []string, less LessFunc) 
 		valueLine := "|"
 		// now render the content
 		changedColIndex := 0
+		allGrouped := false
 		for i, col := range displayCols {
 			if lastRow[i] != row[col] || changedColIndex < i {
 				changedColIndex = i
@@ -133,12 +134,23 @@ func (t Table) GenerateRstTableWithCustomOrder(groupBy []string, less LessFunc) 
 				valueLine += fmt.Sprintf(colFormat(maxColLen), row[col])
 				lastRow[i] = row[col]
 			} else {
+				if i == len(groupBy)-1 {
+					allGrouped = true
+				}
 				changedColIndex += 1
 				topLine += splitCell(" ", maxColLen)
 				valueLine += fmt.Sprintf(colFormat(maxColLen), " ")
 			}
 		}
-		topLine += "\n"
+		if !mergeGroupItems {
+			topLine += "\n"
+		} else {
+			if !allGrouped {
+				topLine += "\n"
+			} else {
+				topLine = ""
+			}
+		}
 		valueLine += "\n"
 		buf += topLine + valueLine
 	}

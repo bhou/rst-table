@@ -132,6 +132,21 @@ func TestTableWithThreeColGroup(t *testing.T) {
 |            | 40         | 3000       | Joe        |
 +------------+------------+------------+------------+
 	`))
+}
+
+func TestTableWithThreeColGroupWithDifferentGroupOrder(t *testing.T) {
+	table := NewTable()
+
+	table.AddCol("name", DefaultColRender)
+	table.AddCol("age", DefaultColRender)
+	table.AddCol("profession", DefaultColRender)
+	table.AddCol("salary", DefaultColRender)
+
+	table.AddRow(map[string]any{"name": "John", "age": 20, "profession": "student", "salary": 1000})
+	table.AddRow(map[string]any{"name": "Jane", "age": 30, "profession": "student", "salary": 1000})
+	table.AddRow(map[string]any{"name": "Joe", "age": 40, "profession": "teacher", "salary": 3000})
+	table.AddRow(map[string]any{"name": "Jack", "age": 30, "profession": "teacher", "salary": 4000})
+	table.AddRow(map[string]any{"name": "Jill", "age": 30, "profession": "teacher", "salary": 4000})
 
 	t2 := table.GenerateRstTable([]string{"profession", "salary", "age"})
 	fmt.Println(t2)
@@ -143,11 +158,43 @@ func TestTableWithThreeColGroup(t *testing.T) {
 +            +            +------------+------------+
 |            |            | 30         | Jane       |
 +------------+------------+------------+------------+
-| teacher    | 3000       | 40         | Joe        |
-+            +------------+------------+------------+
-|            | 4000       | 30         | Jack       |
+| teacher    | 4000       | 30         | Jack       |
 +            +            +            +------------+
 |            |            |            | Jill       |
++            +------------+------------+------------+
+|            | 3000       | 40         | Joe        |
++------------+------------+------------+------------+
+	`))
+}
+
+func TestTableWithThreeColGroupAndMergeGroupRows(t *testing.T) {
+	table := NewTable()
+
+	table.AddCol("name", DefaultColRender)
+	table.AddCol("age", DefaultColRender)
+	table.AddCol("profession", DefaultColRender)
+	table.AddCol("salary", DefaultColRender)
+
+	table.AddRow(map[string]any{"name": "John", "age": 20, "profession": "student", "salary": 1000})
+	table.AddRow(map[string]any{"name": "Jane", "age": 30, "profession": "student", "salary": 1000})
+	table.AddRow(map[string]any{"name": "Joe", "age": 40, "profession": "teacher", "salary": 3000})
+	table.AddRow(map[string]any{"name": "Jack", "age": 30, "profession": "teacher", "salary": 4000})
+	table.AddRow(map[string]any{"name": "Jill", "age": 30, "profession": "teacher", "salary": 4000})
+
+	t3 := table.GenerateRstTableWithCustomOrder([]string{"profession", "salary", "age"}, nil, true)
+	fmt.Println(t3)
+	assert.Equal(t, strings.TrimSpace(t3), strings.TrimSpace(`
++------------+------------+------------+------------+
+| profession | salary     | age        | name       |
++============+============+============+============+
+| student    | 1000       | 20         | John       |
++            +            +------------+------------+
+|            |            | 30         | Jane       |
++------------+------------+------------+------------+
+| teacher    | 4000       | 30         | Jack       |
+|            |            |            | Jill       |
++            +------------+------------+------------+
+|            | 3000       | 40         | Joe        |
 +------------+------------+------------+------------+
 	`))
 }
@@ -169,7 +216,7 @@ func TestTableWithGroupAndSort(t *testing.T) {
 			return false
 		}
 		return true
-	})
+	}, false)
 
 	fmt.Println(t2)
 
@@ -183,6 +230,42 @@ func TestTableWithGroupAndSort(t *testing.T) {
 +      +------+
 |      | Jack |
 +      +------+
+|      | Jane |
++------+------+
+| 20   | John |
++------+------+
+`))
+}
+
+func TestTableWithMergeGroupItems(t *testing.T) {
+	table := NewTable()
+
+	table.AddCol("name", DefaultColRender)
+	table.AddCol("age", DefaultColRender)
+
+	table.AddRow(map[string]any{"name": "John", "age": 20})
+	table.AddRow(map[string]any{"name": "Jane", "age": 30})
+	table.AddRow(map[string]any{"name": "Joe", "age": 40})
+	table.AddRow(map[string]any{"name": "Jack", "age": 30})
+	table.AddRow(map[string]any{"name": "Jill", "age": 30})
+
+	t2 := table.GenerateRstTableWithCustomOrder([]string{"age"}, func(a, b Row) bool {
+		if a.(map[string]any)["age"].(int) < b.(map[string]any)["age"].(int) {
+			return false
+		}
+		return true
+	}, true)
+
+	fmt.Println(t2)
+
+	assert.Equal(t, strings.TrimSpace(t2), strings.TrimSpace(`
++------+------+
+| age  | name |
++======+======+
+| 40   | Joe  |
++------+------+
+| 30   | Jill |
+|      | Jack |
 |      | Jane |
 +------+------+
 | 20   | John |
